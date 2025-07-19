@@ -18,7 +18,12 @@ const router = createRouter({
       path: '/file-upload',
       name: 'file-upload',
       component: () => import('../views/FileUploadView.vue'),
-    }
+    },
+    {
+      path: '/large-file-upload',
+      name: 'large-file-upload',
+      component: () => import('../views/LargeFileUploadView.vue'),
+    },
   ],
 })
 

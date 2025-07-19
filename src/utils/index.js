@@ -1,5 +1,5 @@
 import SparkMD5 from 'spark-md5'
-
+import MD5Worker from './md5.worker.js?worker';
 export async function calculateFileMD5(file) {
   return new Promise((resolve, reject) => {
     const chunkSize = 2 * 1024 * 1024 // 每块2MB
@@ -34,6 +34,33 @@ export async function calculateFileMD5(file) {
 
     loadNext()
   })
+}
+
+export function computeMD5(file) {
+  return new Promise((resolve, reject) => {
+    const worker = new MD5Worker();
+    const start = performance.now();
+
+    worker.postMessage(file);
+
+    worker.onmessage = (e) => {
+      if (e.data.error) {
+        reject(e.data.error);
+      } else {
+        const duration = (performance.now() - start) / 1000;
+        console.log(`✅ 文件MD5：${e.data.md5}`);
+        console.log(`⏱️ 计算耗时：${duration.toFixed(3)}s`);
+        resolve(e.data.md5);
+      }
+      worker.terminate();
+    };
+
+    worker.onerror = (err) => {
+      console.error('❌ Worker 错误:', err);
+      reject(err);
+      worker.terminate();
+    };
+  });
 }
 
 // 50MB分块大小
