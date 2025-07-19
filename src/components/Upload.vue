@@ -16,26 +16,26 @@
   </div>
 </template>
 <script setup>
-import { defineEmits, ref } from "vue";
-const emit = defineEmits(["fileSelectedChange"]);
+import { defineEmits, ref } from 'vue'
+const emit = defineEmits(['fileSelectedChange'])
 
-const hiddenInput = ref(null);
+const hiddenInput = ref(null)
 const openFileInput = () => {
-  hiddenInput.value && hiddenInput.value.click();
-};
+  hiddenInput.value && hiddenInput.value.click()
+}
 
 const handleFileInput = (e) => {
-  const files = Array.from(e.target.files || []);
-  const fileList = [];
+  const files = Array.from(e.target.files || [])
+  const fileList = []
   fileList.push(
     ...files.map((file) => ({
       name: file.name,
       raw: file,
-    }))
-  );
+    })),
+  )
   // 发送文件给父组件
-  emit("fileSelectedChange", fileList);
-};
+  emit('fileSelectedChange', fileList)
+}
 </script>
 <style lang="scss" scoped>
 .upload {
@@ -52,7 +52,7 @@ const handleFileInput = (e) => {
   .icon {
     height: 64px;
     width: 64px;
-    background: url("@/assets/file.svg") no-repeat center;
+    background: url('@/assets/file.svg') no-repeat center;
   }
   .text {
     margin-top: 12px;

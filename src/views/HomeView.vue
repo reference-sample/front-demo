@@ -12,7 +12,12 @@
       </div>
     </div>
     <div class="demo-progress">
-      <el-progress v-show="progress > 0" :text-inside="true" :stroke-width="26" :percentage="progress" />
+      <el-progress
+        v-show="progress > 0"
+        :text-inside="true"
+        :stroke-width="26"
+        :percentage="progress"
+      />
     </div>
   </main>
 </template>
@@ -37,47 +42,47 @@ const removeFile = (fileName) => {
 }
 
 const handleFileChange = async (files) => {
-  console.info('开始处理...');
-  const start = new Date().getTime();
+  console.info('开始处理...')
+  const start = new Date().getTime()
   fileList.value = files
   const file = files[0].raw
-  console.info(file);
-  console.info(`文件名：${file.name}, 文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`);
+  console.info(file)
+  console.info(`文件名：${file.name}, 文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`)
 
-  console.info('开始计算文件MD5...');
+  console.info('开始计算文件MD5...')
 
-  const start1 = new Date().getTime();
+  const start1 = new Date().getTime()
   const fileMd5 = await calculateFileMD5(file)
 
   let now = new Date().getTime()
 
   let time = (now - start1) / 1000
-  console.info(`计算文件MD5耗时：${time}s`);
+  console.info(`计算文件MD5耗时：${time}s`)
 
   // 1. 初始化上传
-  console.info('初始化上传...');
+  console.info('初始化上传...')
   const formData = new FormData()
   formData.append('fileName', file.name)
   formData.append('fileMd5', fileMd5)
 
-  const {data: uploadId} = await axios.post('/upload/init', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+  const { data: uploadId } = await axios.post('/upload/init', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   })
 
   // 2. 分块上传
-    console.info('开始文件分块...');
-  const start2 = new Date().getTime();
+  console.info('开始文件分块...')
+  const start2 = new Date().getTime()
   const chunks = processFile(file)
   const total = ref(chunks.length)
 
   now = new Date().getTime()
   time = (now - start2) / 1000
-  console.info(`分块耗时：${time}s`);
+  console.info(`分块耗时：${time}s`)
 
   // let uploaded = 0
-console.info('开始上传...');
+  console.info('开始上传...')
   const uploaded = ref(0)
-  const start3 = new Date().getTime();
+  const start3 = new Date().getTime()
   await Promise.all(
     chunks.map((chunk, index) => {
       const formData = new FormData()
@@ -95,7 +100,7 @@ console.info('开始上传...');
           },
         })
         .then(() => {
-          uploaded.value++;
+          uploaded.value++
           progress.value = ((uploaded.value * 100) / total.value).toFixed(0)
         })
     }),
@@ -103,10 +108,10 @@ console.info('开始上传...');
 
   now = new Date().getTime()
   time = (now - start3) / 1000
-  console.info(`上传耗时：${time}s`);
+  console.info(`上传耗时：${time}s`)
 
   // 3. 触发合并
-  console.info('开始合并...');
+  console.info('开始合并...')
   const formData2 = new FormData()
   formData2.append('fileName', file.name)
   formData2.append('uploadId', uploadId)
@@ -117,7 +122,7 @@ console.info('开始上传...');
 
   now = new Date().getTime()
   time = (now - start) / 1000
-  console.info(`总耗时：${time}s`);
+  console.info(`总耗时：${time}s`)
 
   ElMessage.success('上传成功')
 }
