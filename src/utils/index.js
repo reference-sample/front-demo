@@ -1,5 +1,61 @@
 import SparkMD5 from 'spark-md5'
 import MD5Worker from './md5.worker.js?worker';
+
+// utils/fileHash.js
+import { createMD5 } from 'hash-wasm'
+
+const DEFAULT_THRESHOLD = 10 * 1024 * 1024 // 10MB
+
+/**
+ * 生成文件的 hash（小文件全量，大文件只取前2M+后2M）
+ * @param {File} file - 要处理的文件对象
+ * @param {Object} options - 可选项
+ * @param {number} options.threshold - 文件大小阈值（默认10MB）
+ * @param {string} [options.userName] - 可加用户名参与 hash
+ */
+export async function generateFileSmartHash(file, options = {}) {
+  const { threshold = DEFAULT_THRESHOLD, userName = '' } = options
+  const md5 = await createMD5()
+
+  if (file.size <= threshold) {
+    // 小文件，直接全量读取
+    const buffer = await file.arrayBuffer()
+    md5.update(new Uint8Array(buffer))
+  } else {
+    // 大文件，只取前后片段
+    const front = file.slice(0, 2 * 1024 * 1024)
+    const end = file.slice(file.size - 2 * 1024 * 1024)
+    const frontBuffer = await front.arrayBuffer()
+    const endBuffer = await end.arrayBuffer()
+
+    md5.update(new Uint8Array(frontBuffer))
+    md5.update(new Uint8Array(endBuffer))
+  }
+
+  // 加上其他辅助信息（可选）
+  const meta = `${file.name}-${file.size}-${file.lastModified}-${userName}`
+  md5.update(meta)
+
+  return md5.digest()
+}
+
+
+export async function computeFastMD5(file) {
+  const hasher = await createMD5();
+  const chunkSize = 4 * 1024 * 1024; // 4MB
+  const total = file.size;
+  let offset = 0;
+
+  while (offset < total) {
+    const chunk = file.slice(offset, offset + chunkSize);
+    const buf = await chunk.arrayBuffer();
+    hasher.update(new Uint8Array(buf));
+    offset += chunkSize;
+  }
+
+  return hasher.digest();
+}
+
 export async function calculateFileMD5(file) {
   return new Promise((resolve, reject) => {
     const chunkSize = 2 * 1024 * 1024 // 每块2MB
@@ -36,7 +92,7 @@ export async function calculateFileMD5(file) {
   })
 }
 
-export function computeMD5(file) {
+export function webWorkerComputeMD5(file) {
   return new Promise((resolve, reject) => {
     const worker = new MD5Worker();
     const start = performance.now();

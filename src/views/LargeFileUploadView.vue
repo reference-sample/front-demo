@@ -29,7 +29,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import UploadComponent from '@/components/Upload.vue'
-import { computeMD5, calculateFileMD5, processFile } from '@/utils/index'
+import { calculateFileMD5, generateFileSmartHash, computeFastMD5, webWorkerComputeMD5, processFile } from '@/utils/index'
 import { uploadChunk, mergeChunks } from '@/api'
 
 const fileList = ref([])
@@ -57,14 +57,15 @@ const uploadFile = async (fileName) => {
 
   console.info('开始计算文件MD5...')
   // 1. 计算文件MD5
-  const fileMd5 = await calculateFileMD5(raw)
-  // const fileMd5 = await computeMD5(raw)
+  const fileMd5 = await generateFileSmartHash(raw)
+  // const fileMd5 = await webWorkerComputeMD5(raw)
   console.info(`文件MD5：${fileMd5}`)
 
   let now = new Date().getTime()
   let time = (now - start) / 1000
   console.info(`计算文件MD5耗时：${time}s`)
 
+  return;
   // 2. 上传分块
   console.info('开始文件分块...')
   const start2 = new Date().getTime()
