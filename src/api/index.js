@@ -40,7 +40,7 @@ export function downloadFile(fileName) {
 }
 
 export function getFileInfo(fileName) {
-  return request.get('/file/fileInfo', fileName)
+  return request.get('/file/fileInfo', {fileName})
 }
 
 export function downloadChunkApi(fileName, start, end) {
