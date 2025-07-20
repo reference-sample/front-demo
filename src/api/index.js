@@ -35,6 +35,19 @@ export function mergeChunks(fileName, totalChunks, md5) {
 }
 
 // 下载文件
-export function downloadExcel() {
-  return request.download('/report/export', {}, '报表.xlsx')
+export function downloadFile(fileName) {
+  return request.download('/file/download', fileName)
+}
+
+export function getFileInfo(fileName) {
+  return request.get('/file/fileInfo', fileName)
+}
+
+export function downloadChunkApi(fileName, start, end) {
+  return request.get('/file/downloadChunk', {fileName}, {
+    responseType: 'blob',
+    headers: {
+      Range: `bytes=${start}-${end}`,
+    },
+  })
 }

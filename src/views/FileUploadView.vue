@@ -1,5 +1,6 @@
 <template>
   <main>
+    <h4>File Upload</h4>
     <UploadComponent class="upload" @fileSelectedChange="handleFileChange" />
     <div class="file-list">
       <div class="file-item" v-for="(file, index) in fileList" :key="index">
@@ -63,6 +64,11 @@ main {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+h4 {
+  font-size: 20px;
+  color: #303030;
+  margin-bottom: 60px;
 }
 .upload {
   margin-top: 100px;

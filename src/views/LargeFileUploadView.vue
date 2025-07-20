@@ -64,8 +64,6 @@ const uploadFile = async (fileName) => {
   let now = new Date().getTime()
   let time = (now - start) / 1000
   console.info(`计算文件MD5耗时：${time}s`)
-
-  return;
   // 2. 上传分块
   console.info('开始文件分块...')
   const start2 = new Date().getTime()

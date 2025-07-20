@@ -14,7 +14,7 @@ const instance = axios.create({
 // 请求拦截器
 instance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('userinfo')?.token
+    const token = JSON.parse(localStorage.getItem('userinfo'))?.token
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -32,8 +32,12 @@ instance.interceptors.request.use(
 // 响应拦截器
 instance.interceptors.response.use(
   (response) => {
-    const data = response.data
+    // 如果是文件流（Blob），直接返回原始 response
+    if (response.config.responseType === 'blob') {
+      return response
+    }
 
+    const data = response.data
     if (data.code !== 0) {
       ElMessage.error(data.message || '接口异常')
       return Promise.reject(data)
@@ -72,7 +76,9 @@ instance.interceptors.response.use(
 // 通用请求方法封装
 const request = {
   get(url, params = {}, config = {}) {
-    return instance.get(url, { params, ...config })
+    const query = new URLSearchParams(params).toString()
+    const fullUrl = query ? `${url}?${query}` : url
+    return instance.get(fullUrl, config)
   },
 
   post(url, data = {}, config = {}) {
@@ -96,19 +102,23 @@ const request = {
     })
   },
 
-  download(url, data = {}, filename = 'download', config = {}) {
+  download(url, fileName, config = {}) {
     return instance
-      .post(url, data, {
-        responseType: 'blob',
+      .get(url + `?fileName=${fileName}`, {
+         responseType: 'blob',
         ...config,
       })
       .then((res) => {
-        const blob = new Blob([res])
-        const link = document.createElement('a')
-        link.href = URL.createObjectURL(blob)
-        link.download = filename
-        link.click()
-        URL.revokeObjectURL(link.href)
+        const blob = new Blob([res.data])
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = fileName
+        a.click()
+        URL.revokeObjectURL(a.href)
+      }).catch((error) => {
+        // 此处捕获到异常
+        console.error("下载 error");
+        console.error(error);
       })
   },
 }
