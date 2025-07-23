@@ -17,8 +17,6 @@
     <div class="demo-progress">
       <el-progress
         v-show="progress > 0"
-        :text-inside="true"
-        :stroke-width="26"
         :percentage="progress"
       />
     </div>
