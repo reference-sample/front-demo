@@ -5,6 +5,7 @@ URL="http://localhost:9002/api/file/downloadChunk"
 FILENAME="24.zip"
 OUTPUT="24.zip"
 CHUNK_SIZE=$((100 * 1024 * 1024))  # 100MB
+# TOTAL_SIZE=$(curl -sI "$URL?fileName=$FILENAME" | grep -i Content-Length | awk '{print $2}' | tr -d '\r')
 TOTAL_SIZE=24614311691
 TEMP_DIR=".download"
 
@@ -34,7 +35,9 @@ done
 
 # === 合并分片 ===
 echo "🔗 合并分片到 $OUTPUT ..."
-cat "$TEMP_DIR"/part_* > "$OUTPUT"
+for ((i=0; i<CHUNK_COUNT; i++)); do
+  cat "$TEMP_DIR/part_$i" >> "$OUTPUT"
+done
 
 # === 清理临时分片 ===
 echo "🧹 清理临时目录 $TEMP_DIR ..."
