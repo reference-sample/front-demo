@@ -37,8 +37,8 @@ const downloadFileClick = async () => {
 const downloadFileChunkClick = async () => {
   console.info('开始分块下载...')
   const start = new Date().getTime()
-  const fileName = 'large.zip'
-  const chunkSize = 2 * 1024 * 1024 // 2MB
+  const fileName = '3.zip'
+  const chunkSize = 8 * 1024 * 1024 // 8MB
   const concurrency = 5 // 并发数
 
   await downloadFileChunked({
@@ -53,8 +53,90 @@ const downloadFileChunkClick = async () => {
 
   ElMessage.success('下载成功')
 }
-
 async function downloadFileChunked({ fileName, chunkSize = 2 * 1024 * 1024, concurrency = 5 }) {
+  // 1. 获取文件信息与分片
+  const infoRes = await getFileInfo(fileName);
+  const fileSize = infoRes.size;
+  const totalChunks = Math.ceil(fileSize / chunkSize);
+  const chunks = Array.from({ length: totalChunks }, (_, i) => {
+    const start = i * chunkSize;
+    const end = Math.min(start + chunkSize - 1, fileSize - 1);
+    return { index: i, start, end };
+  });
+
+  // 2. 初始化流式存储（优先用文件系统API，降级用Blob）
+  let writeStream;
+  let fileHandle;
+  try {
+    // 浏览器支持文件系统API时，直接写入本地文件（需用户授权）
+    fileHandle = await window.showSaveFilePicker({ suggestedName: fileName });
+    writeStream = await fileHandle.createWritable();
+    console.info(1);
+  } catch (e) {
+    console.info(2);
+    // 不支持时用Blob数组增量合并（内存友好版）
+    console.info("不支持文件系统API，使用Blob数组增量合并", e);
+
+    writeStream = {
+      blobs: [],
+      write: async (chunk) => { writeStream.blobs[chunk.index] = chunk.data; },
+      close: async () => {
+        const finalBlob = new Blob(writeStream.blobs)
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(finalBlob);
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        return finalBlob;
+      }
+    };
+    // console.info(2);
+  }
+
+  // 3. 并发下载+流式写入
+  let completed = 0;
+  const results = new Array(totalChunks); // 仅存状态，不存完整数据
+
+  async function downloadChunk(chunk) {
+    const { index, start, end } = chunk;
+    const res = await downloadChunkApi(fileName, start, end);
+    // 按索引写入，保证顺序正确
+    // await writeStream.write({ index, data: res.data });
+    await writeStream.write({type: 'write', data: res.data, position: start});
+    results[index] = true;
+    completed++;
+    console.log(`进度：${Math.floor(completed / totalChunks * 100)}%`);
+  }
+
+  // 并发池逻辑（复用原有控制，仅修改任务内容）
+  let index = 0;
+  async function runPool() {
+    const pool = [];
+    while (index < chunks.length) {
+      while (pool.length < concurrency && index < chunks.length) {
+        const chunk = chunks[index++];
+        const p = downloadChunk(chunk);
+        pool.push(p);
+        p.finally(() => pool.splice(pool.indexOf(p), 1));
+      }
+      await Promise.race(pool);
+    }
+    await Promise.all(pool);
+  }
+
+  await runPool();
+  const finalBlob = await writeStream.close();
+
+  // // 4. 触发下载
+  // const link = document.createElement('a');
+  // link.href = URL.createObjectURL(finalBlob);
+  // link.download = fileName;
+  // link.click();
+  // URL.revokeObjectURL(link.href);
+}
+
+async function downloadFileChunkedMemory({ fileName, chunkSize = 2 * 1024 * 1024, concurrency = 5 }) {
   // 1. 获取文件大小
   const infoRes = await getFileInfo(fileName)
 
