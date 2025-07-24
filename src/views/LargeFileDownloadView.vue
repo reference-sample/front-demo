@@ -103,7 +103,7 @@ async function downloadFileChunked({ fileName, chunkSize = 2 * 1024 * 1024, conc
     const res = await downloadChunkApi(fileName, start, end);
     // 按索引写入，保证顺序正确
     // await writeStream.write({ index, data: res.data });
-    await writeStream.write({type: 'write', data: res.data, position: start});
+    await writeStream.write({type: 'write', index, data: res.data, position: start});
     results[index] = true;
     completed++;
     console.log(`进度：${Math.floor(completed / totalChunks * 100)}%`);
@@ -127,13 +127,6 @@ async function downloadFileChunked({ fileName, chunkSize = 2 * 1024 * 1024, conc
 
   await runPool();
   const finalBlob = await writeStream.close();
-
-  // // 4. 触发下载
-  // const link = document.createElement('a');
-  // link.href = URL.createObjectURL(finalBlob);
-  // link.download = fileName;
-  // link.click();
-  // URL.revokeObjectURL(link.href);
 }
 
 async function downloadFileChunkedMemory({ fileName, chunkSize = 2 * 1024 * 1024, concurrency = 5 }) {
