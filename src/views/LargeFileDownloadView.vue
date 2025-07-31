@@ -91,7 +91,6 @@ async function downloadFileChunked({ fileName, chunkSize = 2 * 1024 * 1024, conc
         return finalBlob;
       }
     };
-    // console.info(2);
   }
 
   // 3. 并发下载+流式写入
@@ -102,7 +101,6 @@ async function downloadFileChunked({ fileName, chunkSize = 2 * 1024 * 1024, conc
     const { index, start, end } = chunk;
     const res = await downloadChunkApi(fileName, start, end);
     // 按索引写入，保证顺序正确
-    // await writeStream.write({ index, data: res.data });
     await writeStream.write({type: 'write', index, data: res.data, position: start});
     results[index] = true;
     completed++;

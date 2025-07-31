@@ -1,11 +1,18 @@
 <template>
   <main>
+    <div class="url">
+      <span>BaseURL:</span>
+      <el-input v-model="baseUrl"></el-input>
+    </div>
     <Upload class="upload" @fileSelectedChange="handleFileChange" />
 
     <div class="file-list">
       <div class="file-item" v-for="(file, index) in fileList" :key="index">
         <span class="file-icon"></span>
         <span class="file-name">{{ file.name }}</span>
+        <el-button link class="file-remove" @click="uploadFile(file.name)">
+          <el-icon><Upload /></el-icon>
+        </el-button>
         <el-button link class="file-remove" @click="removeFile(file.name)"
           ><el-icon><Close /></el-icon
         ></el-button>
@@ -22,15 +29,13 @@
 
 <script setup>
 import Upload from '@/components/Upload.vue'
-import { calculateFileMD5, processFile } from '@/utils/index'
+import { generateFileSmartHash, processFile } from '@/utils/index'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 
-const baseUrl = 'http://172.16.12.63:9999'
-// const baseUrl = 'http://172.16.13.46:9999'
-
-axios.defaults.baseURL = baseUrl
+const baseUrl = ref('http://172.16.13.46:9999')
+// baseUrl.value = 'http://172.16.13.46:9999'
 
 const fileList = ref([])
 const progress = ref(0)
@@ -39,18 +44,30 @@ const removeFile = (fileName) => {
   fileList.value = fileList.value.filter((file) => file.name !== fileName)
 }
 
+
 const handleFileChange = async (files) => {
-  console.info('开始处理...')
   const start = new Date().getTime()
   fileList.value = files
   const file = files[0].raw
   console.info(file)
   console.info(`文件名：${file.name}, 文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`)
+}
+
+const uploadFile = async (fileName) => {
+  axios.defaults.baseURL = baseUrl
+
+  console.info('开始上传...')
+  const start = new Date().getTime()
+
+  const fileObj = fileList.value.find((file) => file.name === fileName)
+  if (!fileObj) return
+  const file = fileObj.raw
+
 
   console.info('开始计算文件MD5...')
 
   const start1 = new Date().getTime()
-  const fileMd5 = await calculateFileMD5(file)
+  const fileMd5 = await generateFileSmartHash(file)
 
   let now = new Date().getTime()
 
@@ -133,6 +150,14 @@ main {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+.url {
+  display: flex;
+  align-items: center;
+  color: #303030;
+  span {
+    margin-right: 8px;
+  }
 }
 .upload {
   margin-top: 100px;

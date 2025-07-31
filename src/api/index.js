@@ -18,7 +18,7 @@ export function upload(file) {
 }
 
 // 分片上传文件
-export function uploadChunk(blob, index, md5) {
+export function uploadChunkApi(blob, index, md5) {
   const formData = new FormData()
   formData.append('file', blob)
   formData.append('chunkIndex', index)
@@ -26,7 +26,7 @@ export function uploadChunk(blob, index, md5) {
   return request.upload('/file/uploadChunk', formData)
 }
 // 分片上传文件
-export function mergeChunks(fileName, totalChunks, md5) {
+export function mergeChunksApi(fileName, totalChunks, md5) {
   const formData = new FormData()
   formData.append('fileName', fileName)
   formData.append('totalChunks', totalChunks)

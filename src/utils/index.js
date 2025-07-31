@@ -120,7 +120,7 @@ export function webWorkerComputeMD5(file) {
 }
 
 // 50MB分块大小
-const CHUNK_SIZE = 50 * 1024 * 1024
+const CHUNK_SIZE = 5 * 1024 * 1024
 
 /**
  * 处理文件分块

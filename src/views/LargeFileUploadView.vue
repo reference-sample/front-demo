@@ -28,7 +28,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import UploadComponent from '@/components/Upload.vue'
 import { calculateFileMD5, generateFileSmartHash, computeFastMD5, webWorkerComputeMD5, processFile } from '@/utils/index'
-import { uploadChunk, mergeChunks } from '@/api'
+import { uploadChunkApi, mergeChunksApi } from '@/api'
 
 const fileList = ref([])
 const progress = ref(0)
@@ -65,17 +65,23 @@ const uploadFile = async (fileName) => {
   // 2. 上传分块
   console.info('开始文件分块...')
   const start2 = new Date().getTime()
+  // const chunks = processFile(raw)
+  // const total = chunks.length
+  // let uploaded = 0
+  // await Promise.all(
+  //   chunks.map(async (chunk, index) => {
+  //     const { data: res } = await uploadChunkApi(chunk, index, fileMd5)
+  //     // console.info(`分块${index + 1}上传成功`)
+  //     uploaded++
+  //     progress.value = ((uploaded * 100) / total).toFixed(0)
+  //   }),
+  // )
+
   const chunks = processFile(raw)
-  const total = chunks.length
-  let uploaded = 0
-  await Promise.all(
-    chunks.map(async (chunk, index) => {
-      const { data: res } = await uploadChunk(chunk, index, fileMd5)
-      // console.info(`分块${index + 1}上传成功`)
-      uploaded++
-      progress.value = ((uploaded * 100) / total).toFixed(0)
-    }),
-  )
+  const totalChunks = chunks.length
+
+  await uploadFileChunked({chunks, fileMd5})
+
   now = new Date().getTime()
   time = (now - start2) / 1000
   console.info(`上传耗时：${time}s`)
@@ -83,7 +89,7 @@ const uploadFile = async (fileName) => {
   console.info('开始合并...')
   const start3 = new Date().getTime()
 
-  const { data: res } = await mergeChunks(fileName, total, fileMd5)
+  const { data: res } = await mergeChunksApi(fileName, totalChunks, fileMd5)
   console.info(`合并分块成功`)
 
   now = new Date().getTime()
@@ -96,6 +102,36 @@ const uploadFile = async (fileName) => {
   console.info(`总耗时：${time}s`)
 
   ElMessage.success('上传成功')
+}
+
+async function uploadFileChunked({ chunks, fileMd5, concurrency = 5 }) { 
+  const totalChunks = chunks.length
+  // 3. 并发下载+流式写入
+  let completed = 0;
+
+  async function uploadChunk(chunk, index, fileMd5) {
+     await uploadChunkApi(chunk, index, fileMd5)
+    completed++;
+    console.log(`进度：${Math.floor(completed / totalChunks * 100)}%`);
+  }
+
+  // 并发池逻辑（复用原有控制，仅修改任务内容）
+  let index = 0;
+  async function runPool() {
+    const pool = [];
+    while (index < totalChunks) {
+      while (pool.length < concurrency && index < totalChunks) {
+        const p = uploadChunk(chunks[index], index, fileMd5);
+        index++;
+        pool.push(p);
+        p.finally(() => pool.splice(pool.indexOf(p), 1));
+      }
+      await Promise.race(pool);
+    }
+    await Promise.all(pool);
+  }
+
+  await runPool();
 }
 </script>
 
