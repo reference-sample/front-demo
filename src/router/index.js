@@ -22,6 +22,11 @@ export const routes = [
     component: () => import('../views/FileUploadView.vue'),
   },
   {
+    path: '/file-download',
+    name: 'file-download',
+    component: () => import('../views/FileDownloadView.vue'),
+  },
+  {
     path: '/large-file-upload',
     name: 'large-file-upload',
     component: () => import('../views/LargeFileUploadView.vue'),

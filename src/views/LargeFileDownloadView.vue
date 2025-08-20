@@ -25,7 +25,7 @@ const downloadFileClick = async () => {
   console.info('开始下载...')
   const start = new Date().getTime()
 
-  const fileMd5 = await downloadFile('large.zip')
+  const fileMd5 = await downloadFile('39.zip')
 
   let now = new Date().getTime()
   let time = (now - start) / 1000
@@ -37,7 +37,7 @@ const downloadFileClick = async () => {
 const downloadFileChunkClick = async () => {
   console.info('开始分块下载...')
   const start = new Date().getTime()
-  const fileName = '3.zip'
+  const fileName = '39.zip'
   const chunkSize = 8 * 1024 * 1024 // 8MB
   const concurrency = 5 // 并发数
 
