@@ -12,6 +12,11 @@ export const routes = [
     component: () => import('../views/HomeView.vue'),
   },
   {
+    path: '/editor',
+    name: 'editor',
+    component: () => import('../views/EditorView.vue'),
+  },
+  {
     path: '/login',
     name: 'login',
     component: () => import('../views/LoginView.vue'),
