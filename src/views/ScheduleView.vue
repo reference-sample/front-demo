@@ -32,6 +32,8 @@ const handleConfirm = (selection: { vehicleId: number; startDay: number; endDay:
 </script>
 <style scoped lang="scss">
 .schedule-view {
-  padding: 30px;  
+  padding: 30px;
+  display: relative;
+  overflow: hidden;
 }
 </style>

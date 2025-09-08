@@ -1,53 +1,69 @@
 <template>
-  <div class="grid day" :style="{ '--col-count': daysInMonth.length }">
-    <template v-for="(vehicle, i) in [{ id: 0, vehicleNo: '' }, ...vehicles]">
-      <template v-for="(day, j) in daysInMonth">
-        <!-- 第一行表头 -->
-        <div v-if="i === 0" class="cell header-label" :key="'header-' + day">
-          <span>{{ j === 0 ? '' : day }}</span>
-        </div>
-        <!-- 第一列名称 -->
-        <div v-else-if="j === 0" class="cell left-label" :key="'header-' + vehicle.id">
-          <span>{{ vehicle.vehicleNo }}</span>
-        </div>
-        <template v-else :key="'cell-' + i + '-' + j">
+  <div
+    class="warpper"
+    ref="warpper"
+    @scroll="onScroll"
+    @mousemove="onMouseMove"
+    @mouseleave="onMouseLeave"
+  >
+    <div class="grid day" :style="{ '--col-count': daysInMonth.length }">
+      <template v-for="(vehicle, i) in [{ id: 0, vehicleNo: '' }, ...vehicles]">
+        <template v-for="(day, j) in daysInMonth">
           <div
-            v-if="isActive(i, j)"
-            :id="'cell-' + i + '-' + j"
-            :class="[
-              'cell cell-body',
-              {
-                active: isActive(i, j),
-              },
-            ]"
+            v-if="i === 0"
+            :class="['cell header-label', { scrolled: scrolledY }]"
+            :key="'header-' + day"
           >
-            <el-popover placement="top" :width="180">
-              <p>要删除该班次吗?</p>
-              <div style="text-align: right; margin: 0">
-                <el-button size="small" text>取消</el-button>
-                <el-button size="small" type="primary">确定</el-button>
-              </div>
-              <template #reference>
-                <div>{{ '上午' }}</div>
-              </template>
-            </el-popover>
+            <!-- 第一行表头 -->
+            <span>{{ j === 0 ? '' : day }}</span>
           </div>
           <div
-            v-else
-            :id="'cell-' + i + '-' + j"
-            :class="[
-              'cell cell-body',
-              {
-                selected: isSelected(i, j),
-              },
-            ]"
-            @mousedown="startSelect(i, j)"
-            @mouseenter="moveSelect(i, j)"
-            @mouseup="endSelect"
-          ></div>
+            v-else-if="j === 0"
+            :class="['cell left-label', { scrolled: scrolledX }]"
+            :key="'header-' + vehicle.id"
+          >
+            <!-- 第一列名称 -->
+            <span>{{ vehicle.vehicleNo }}</span>
+          </div>
+          <template v-else :key="'cell-' + i + '-' + j">
+            <div
+              v-if="isActive(i, j)"
+              :id="'cell-' + i + '-' + j"
+              :class="[
+                'cell cell-body',
+                {
+                  active: isActive(i, j),
+                },
+              ]"
+            >
+              <el-popover placement="top" :width="180">
+                <p>要删除该班次吗?</p>
+                <div style="text-align: right; margin: 0">
+                  <el-button size="small" text>取消</el-button>
+                  <el-button size="small" type="primary">确定</el-button>
+                </div>
+                <template #reference>
+                  <div>{{ '上午' }}</div>
+                </template>
+              </el-popover>
+            </div>
+            <div
+              v-else
+              :id="'cell-' + i + '-' + j"
+              :class="[
+                'cell cell-body',
+                {
+                  selected: isSelected(i, j),
+                },
+              ]"
+              @mousedown="startSelect(i, j)"
+              @mouseenter="moveSelect(i, j)"
+              @mouseup="endSelect"
+            ></div>
+          </template>
         </template>
       </template>
-    </template>
+    </div>
   </div>
 
   <!-- 确认弹窗 -->
@@ -144,9 +160,61 @@ const onConfirm = () => {
   selected.value = []
   dialogVisible.value = false
 }
+
+let scrollSpeed = 5 // 每次滚动像素
+let edgeThreshold = 80 // 离边界多近开始触发
+let scrollInterval = null
+const scrolledX = ref(false)
+const scrolledY = ref(false)
+
+const warpper = ref<HTMLDivElement | null>(null)
+const onScroll = () => {
+  const box = warpper.value
+  if (!box) return
+  scrolledX.value = box.scrollLeft > 0
+  scrolledY.value = box.scrollTop > 0
+}
+const onMouseMove = (e) => {
+  const box = warpper.value
+  if (!box) return
+  const rect = box.getBoundingClientRect()
+  const x = e.clientX - rect.left
+
+  clearInterval(scrollInterval)
+
+  if (x < edgeThreshold) {
+    // 靠近左边
+    scrollInterval = setInterval(() => {
+      box.scrollLeft -= scrollSpeed
+    }, 16)
+  } else if (x > rect.width - edgeThreshold) {
+    // 靠近右边
+    scrollInterval = setInterval(() => {
+      box.scrollLeft += scrollSpeed
+    }, 16)
+  }
+}
+
+const onMouseLeave = () => {
+  clearInterval(scrollInterval)
+}
 </script>
 
 <style scoped>
+.warpper {
+  overflow: auto;
+  height: 400px;
+  &::-webkit-scrollbar {
+    height: 0px;
+    width: 0px;
+  }
+  &:hover::-webkit-scrollbar {
+    height: 12px;
+    width: 12px;
+    background-color: #eaeaea;
+    border-radius: 3px;
+  }
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(var(--col-count), minmax(50px, 1fr));
@@ -162,6 +230,7 @@ const onConfirm = () => {
   border: 1px solid #eee;
   cursor: pointer;
   font-weight: 500;
+  background-color: #fff;
 }
 .cell-body {
   color: #606060;
@@ -179,15 +248,29 @@ const onConfirm = () => {
 }
 
 .header-label {
+  position: sticky;
+  top: 0;
+  &:first-child {
+    left: 0;
+    z-index: 1;
+  }
   cursor: default;
   &:not(:first-child) {
     border-left: none;
   }
 }
 .left-label {
+  position: sticky;
+  left: 0;
   cursor: default;
   &:not(:first-child) {
     border-top: none;
   }
+}
+.header-label.scrolled {
+  box-shadow: 0 2px 5px -2px rgba(119, 117, 117, 0.3);
+}
+.left-label.scrolled {
+  box-shadow: 2px 0 5px -2px rgba(119, 117, 117, 0.3);
 }
 </style>
