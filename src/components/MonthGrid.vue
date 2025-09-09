@@ -10,14 +10,42 @@
     <div class="grid day" :style="{ '--col-count': daysInMonth.length }">
       <template v-for="(vehicle, i) in [{ id: 0, vehicleNo: '' }, ...vehicles]">
         <template v-for="(date, j) in daysInMonth">
+          <template v-if="i === 0">
+            <div
+              v-if="j === 0"
+              :class="['cell header-first', {scrolled: scrolledX || scrolledY }]"
+              :key="'header-first-' + date.text"
+            >
+              <!-- 第一行表头 -->
+              <span>{{ date.text }}</span>
+            </div>
+            <div
+              v-else-if="j === daysInMonth.length - 1"
+              :class="['cell operation-header', {scrolled: scrolledY || scrolledX }]"
+              :key="'header-operation-' + date.text"
+            >
+              <!-- 第一行表头 -->
+              <span>{{ date.text }}</span>
+            </div>
+            <div
+              v-else
+              :class="['cell header-label', {scrolled: scrolledY }]"
+              :key="'header-label-' + date.text"
+            >
+              <!-- 第一行表头 -->
+              <span>{{ date.text }}</span>
+            </div>
+          </template>
+
           <div
-            v-if="i === 0"
-            :class="['cell header-label', { scrolled: scrolledY }]"
-            :key="'header-' + date.text"
+            v-else-if="j === daysInMonth.length - 1"
+            :class="['cell operation-label', { scrolled: scrolledX }]"
+            :key="'operation-' + date.text"
           >
-            <!-- 第一行表头 -->
-            <span>{{ j === 0 ? '' : date.text }}</span>
+            <!-- 最后一列操作 -->
+            <span><el-icon><Finished /></el-icon> <el-icon><Delete /></el-icon> <el-icon><Promotion /></el-icon></span>
           </div>
+          
           <div
             v-else-if="j === 0"
             :class="['cell left-label', { scrolled: scrolledX }]"
@@ -81,6 +109,7 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
+import { da } from 'element-plus/es/locales.mjs'
 import { computed, ref, watch } from 'vue'
 
 dayjs.locale('zh-cn')
@@ -112,8 +141,8 @@ const daysInMonth = computed(() => {
       date: date.format('YYYY-MM-DD'),
     }
   })
-  // 增加一天，因为 第一列是名称
-  return [{ text: '', date: '' }, ...dates]
+  // 收尾各增加一天，因为 第一列是名称，最后一列是操作
+  return [{ id: -1, text: '', date: '' }, ...dates, {id: -2, text: '操作', date: '' }]
 })
 
 // 拖选状态
@@ -201,6 +230,7 @@ const onConfirm = () => {
   dialogVisible.value = false
 }
 
+// 滚动事件
 let scrollSpeed = 5 // 每次滚动像素
 let edgeThreshold = 100 // 离边界多近开始触发
 let scrollInterval = null
@@ -244,7 +274,7 @@ const onMouseLeave = () => {
 .warpper {
   overflow: auto;
   width: 80%;
-  height: 540px;
+  /* height: 540px; */
   &::-webkit-scrollbar {
     height: 0px;
     width: 0px;
@@ -297,27 +327,54 @@ const onMouseLeave = () => {
 .header-label {
   position: sticky;
   top: 0;
-  &:first-child {
-    left: 0;
-    z-index: 1;
-  }
   cursor: default;
-  &:not(:first-child) {
-    border-left: none;
-  }
+  border-left: none;
+  z-index: 2;
 }
+
+.header-first {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  box-shadow: 2px 2px 5px -2px rgba(119, 117, 117, 0.3);
+}
+.header-first.scrolled {
+  box-shadow: 2px 2px 5px -2px rgba(119, 117, 117, 0.3);
+}
+
 .left-label {
   position: sticky;
   left: 0;
   cursor: default;
-  &:not(:first-child) {
-    border-top: none;
-  }
+  border-top: none;
+  z-index: 1;
+}
+.operation-label {
+  position: sticky;
+  right: 0;
+  cursor: default;
+  border-top: none;
+  border-left: none;
+  z-index: 1;
+  box-shadow: -2px 0 5px -2px rgba(119, 117, 117, 0.3);
+}
+.operation-header {
+  position: sticky;
+  top: 0;
+  right: 0;
+  z-index: 3;
+  border-left: none;
+  border-top: 1px solid #eee;
+  box-shadow: -2px 2px 5px -2px rgba(119, 117, 117, 0.3);
 }
 .header-label.scrolled {
   box-shadow: 0 2px 5px -2px rgba(119, 117, 117, 0.3);
 }
 .left-label.scrolled {
   box-shadow: 2px 0 5px -2px rgba(119, 117, 117, 0.3);
+}
+.operation-label.scrolled {
+  box-shadow: -2px 0 5px -2px rgba(119, 117, 117, 0.3);
 }
 </style>
