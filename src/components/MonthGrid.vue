@@ -1,5 +1,6 @@
 <template>
   <div
+    v-loading="loading"
     class="warpper"
     ref="warpper"
     @scroll="onScroll"
@@ -8,14 +9,14 @@
   >
     <div class="grid day" :style="{ '--col-count': daysInMonth.length }">
       <template v-for="(vehicle, i) in [{ id: 0, vehicleNo: '' }, ...vehicles]">
-        <template v-for="(day, j) in daysInMonth">
+        <template v-for="(date, j) in daysInMonth">
           <div
             v-if="i === 0"
             :class="['cell header-label', { scrolled: scrolledY }]"
-            :key="'header-' + day"
+            :key="'header-' + date.text"
           >
             <!-- 第一行表头 -->
-            <span>{{ j === 0 ? '' : day }}</span>
+            <span>{{ j === 0 ? '' : date.text }}</span>
           </div>
           <div
             v-else-if="j === 0"
@@ -27,11 +28,12 @@
           </div>
           <template v-else :key="'cell-' + i + '-' + j">
             <div
-              v-if="isActive(i, j)"
+              v-if="isActive(i, j) || isPublished(i, j)"
               :id="'cell-' + i + '-' + j"
               :class="[
                 'cell cell-body',
                 {
+                  published: isPublished(i, j),
                   active: isActive(i, j),
                 },
               ]"
@@ -77,7 +79,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
+import { computed, ref, watch } from 'vue'
+
+dayjs.locale('zh-cn')
 
 interface Vehicle {
   id: number
@@ -91,10 +97,23 @@ const props = defineProps<{
   onConfirmSelection: (selection: { vehicleId: number; startDay: number; endDay: number }) => void
 }>()
 
+const loading = ref(false)
+
+const publishedData = ref<any[]>([])
+
 const daysInMonth = computed(() => {
-  const [year, month] = props.month.split('-').map(Number)
+  const dataStr = props.month + '-01'
+  const dayCounts = dayjs(dataStr).daysInMonth()
+  const dates = Array.from({ length: dayCounts }, (_, i) => {
+    const date = dayjs(dataStr).add(i, 'day')
+    return {
+      id: i,
+      text: date.format('MM-DD') + ' ' + date.format('dd'),
+      date: date.format('YYYY-MM-DD'),
+    }
+  })
   // 增加一天，因为 第一列是名称
-  return Array.from({ length: new Date(year, month, 0).getDate() + 1 }, (_, i) => i)
+  return [{ text: '', date: '' }, ...dates]
 })
 
 // 拖选状态
@@ -109,6 +128,27 @@ const picked = ref<string[]>([])
 // 判断是否高亮
 const isSelected = (i: number, j: number) => selected.value.includes(`${i}*${j}`)
 const isActive = (i: number, j: number) => picked.value.includes(`${i}*${j}`)
+const isPublished = (i: number, j: number) => publishedData.value.includes(`${i}*${j}`)
+
+watch(
+  () => props.month,
+  () => {
+    selected.value = []
+    picked.value = []
+    startCell.value = null
+    startDay.value = null
+    endDay.value = null
+    selectedVehicleId.value = null
+    picked.value = []
+    dialogVisible.value = false
+
+    // TODO: 查询已有的数据
+    loading.value = true
+    publishedData.value = [`2*4`, '2*5', '2*6', '3*4']
+    loading.value = false
+  },
+  { immediate: true },
+)
 
 // 鼠标事件
 const startSelect = (i: number, j: number) => {
@@ -162,7 +202,7 @@ const onConfirm = () => {
 }
 
 let scrollSpeed = 5 // 每次滚动像素
-let edgeThreshold = 80 // 离边界多近开始触发
+let edgeThreshold = 100 // 离边界多近开始触发
 let scrollInterval = null
 const scrolledX = ref(false)
 const scrolledY = ref(false)
@@ -203,7 +243,8 @@ const onMouseLeave = () => {
 <style scoped>
 .warpper {
   overflow: auto;
-  height: 400px;
+  width: 80%;
+  height: 540px;
   &::-webkit-scrollbar {
     height: 0px;
     width: 0px;
@@ -217,7 +258,7 @@ const onMouseLeave = () => {
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(var(--col-count), minmax(50px, 1fr));
+  grid-template-columns: repeat(var(--col-count), minmax(80px, 1fr));
   user-select: none;
   color: #303030;
 }
@@ -245,6 +286,12 @@ const onMouseLeave = () => {
 
 .cell.active {
   background-color: rgba(50, 112, 255, 0.13);
+}
+.cell.published {
+  background: rgba(50, 112, 255, 0.23) url(@/assets/已发布.png) top right / 24px 24px no-repeat;
+}
+.cell.unpublished {
+  background: rgba(50, 112, 255, 0.13) url(@/assets/未发布.png) top right / 24px 24px no-repeat;
 }
 
 .header-label {

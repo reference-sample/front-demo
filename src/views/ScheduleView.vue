@@ -2,7 +2,7 @@
   <div class="schedule-view">
     <div class="content">
       <MonthGrid
-        month="2025-10"
+        month="2025-06"
         :vehicles="vehicles"
         :onConfirmSelection="handleConfirm"
       />
